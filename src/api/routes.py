@@ -1,16 +1,11 @@
 from fastapi import APIRouter
 from langchain_core.messages import HumanMessage, AIMessage
-from pydantic import BaseModel
-
 from src.memory.chat_history_mongo import ChatHistory
 from src.memory.chathistory_in_memory import ChatInMemoryHistory
+from src.models.query_request import QueryRequest
 from src.rag.graph_builder import builder
 
 router = APIRouter()
-
-class QueryRequest(BaseModel):
-    query: str
-    session_id: str
 
 @router.post("/rag/query")
 async def rag_query(req: QueryRequest):
