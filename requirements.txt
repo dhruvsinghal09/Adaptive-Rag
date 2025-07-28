@@ -1,0 +1,17 @@
+langchain~=0.3.27
+langgraph~=0.5.4
+langchain_community~=0.3.27
+langchain_core~=0.3.72
+langchain_groq
+langchain_openai~=0.3.28
+faiss-cpu
+tavily-python
+bs4~=0.0.2
+requests~=2.32.4
+beautifulsoup4~=4.13.4
+pydantic~=2.11.7
+langchain-text-splitters~=0.3.9
+python-dotenv~=1.1.1
+PyYAML~=6.0.2
+fastapi
+uvicorn
