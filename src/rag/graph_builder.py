@@ -168,13 +168,14 @@ graph.add_edge("retriever", "grade")
 graph.add_edge("rewrite", "retriever")
 graph.add_conditional_edges("query_analysis", routing_tool)
 graph.add_conditional_edges("grade", doc_tool)
-graph.add_conditional_edges("generate", verify_answer)
+graph.add_edge("generate",END)
+#graph.add_conditional_edges("generate", verify_answer)
 graph.add_edge("general_llm", END)
 
 builder=graph.compile()
 
-png_data = builder.get_graph().draw_mermaid_png()
+#png_data = builder.get_graph().draw_mermaid_png()
 
 # Save it to a file
-output_path = pathlib.Path("adaptive_RAG.png")
-output_path.write_bytes(png_data)
+#output_path = pathlib.Path("adaptive_RAG.png")
+#output_path.write_bytes(png_data)

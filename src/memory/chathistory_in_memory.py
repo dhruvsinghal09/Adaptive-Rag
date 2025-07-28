@@ -1,7 +1,7 @@
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
-class ChatHistory:
+class ChatInMemoryHistory:
     store = {}
 
     @classmethod
