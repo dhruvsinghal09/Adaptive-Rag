@@ -1,7 +1,8 @@
 from langchain.agents import create_react_agent, AgentExecutor
 
 from src.config.settings import Config
-from src.llms.openai import llm
+#from src.llms.openai import llm
+from src.llms.groq import llm
 from src.rag.retriever_setup import retriever_tool
 
 config = Config()

@@ -9,7 +9,8 @@ from langgraph.graph.state import CompiledStateGraph, StateGraph
 from src.rag.reAct_agent import agent_executor
 from src.rag.retriever_setup import retriever
 from src.config.settings import Config
-from src.llms.openai import llm
+#from src.llms.openai import llm
+from src.llms.groq import llm
 from src.models.grade import Grade
 from src.models.route_identifier import RouteIdentifier
 from src.models.state import State
@@ -114,7 +115,7 @@ def rewrite_query(state: State):
     result = chain.invoke({"query": query})
     print(result)
     return {
-        "latest_query": result.latest_query
+        "latest_query": result.content
     }
 
 
