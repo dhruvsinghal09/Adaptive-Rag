@@ -17,3 +17,6 @@ fastapi
 uvicorn
 motor
 pymongo
+langchain-huggingface
+transformers
+accelerate
