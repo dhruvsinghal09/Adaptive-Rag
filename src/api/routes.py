@@ -14,7 +14,10 @@ router = APIRouter()
 
 
 @router.post("/rag/query")
-async def rag_query(req: QueryRequest):
+async def rag_query(
+    req: QueryRequest,
+    tenant_id: str = Header("default", alias="X-Tenant-Id")
+):
     """
     Process a RAG query and return the result.
 
@@ -31,20 +34,32 @@ async def rag_query(req: QueryRequest):
     # Fetch full history
     messages = await chat_history.get_messages()
     result = builder.invoke({
-        "messages": messages
+        "messages": messages,
+        "session_id": req.session_id,
+        "tenant_id": tenant_id,
     })
-    output_text = result["messages"][-1].content
+    last_message = result["messages"][-1]
+    output_text = last_message.content
+    citations = getattr(last_message, "additional_kwargs", {}).get("citations", [])
 
     # Save assistant message
     await chat_history.add_message(AIMessage(content=output_text))
 
-    return {"result": result["messages"][-1]}
+    return {
+        "result": {
+            "type": "ai",
+            "content": output_text,
+            "citations": citations
+        }
+    }
 
 
 @router.post("/rag/documents/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    description: str = Header(..., alias="X-Description")
+    description: str = Header(..., alias="X-Description"),
+    tenant_id: str = Header("default", alias="X-Tenant-Id"),
+    session_id: str = Header("global", alias="X-Session-Id")
 ):
     """
     Upload a document for RAG processing.
@@ -56,6 +71,11 @@ async def upload_file(
     Returns:
         Upload status.
     """
-    status_upload = documents(description, file)
+    status_upload = documents(
+        description=description,
+        file=file,
+        tenant_id=tenant_id,
+        session_id=session_id
+    )
     return {"status": status_upload}
 

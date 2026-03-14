@@ -105,7 +105,7 @@ def get_api_token() -> str:
     return None
 
 
-def query_backend(query: str, session_id: str) -> str:
+def query_backend(query: str, session_id: str, tenant_id: str = "default") -> str:
     """
     Send a query to the RAG backend.
 
@@ -122,6 +122,7 @@ def query_backend(query: str, session_id: str) -> str:
     response = requests.post(
         url,
         json={"query": query, "session_id": session_id},
+        headers={"X-Tenant-Id": tenant_id},
         allow_redirects=False
     )
 
@@ -131,7 +132,12 @@ def query_backend(query: str, session_id: str) -> str:
         return f"Error: {response.status_code} - {response.text}"
 
 
-def document_upload_rag(file, description: str) -> bool:
+def document_upload_rag(
+    file,
+    description: str,
+    tenant_id: str = "default",
+    session_id: str = "global"
+) -> bool:
     """
     Upload a document to the RAG system.
 
@@ -143,7 +149,9 @@ def document_upload_rag(file, description: str) -> bool:
         True if upload succeeds, False otherwise.
     """
     headers = {
-        "X-Description": description
+        "X-Description": description,
+        "X-Tenant-Id": tenant_id,
+        "X-Session-Id": session_id
     }
     url = f"{PYTHON_BASE_URL}/rag/documents/upload"
 

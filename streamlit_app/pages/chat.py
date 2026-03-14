@@ -68,7 +68,12 @@ with st.sidebar:
         if file_description:
             if file_key not in st.session_state.uploaded_files:
                 # Upload file if not already uploaded
-                success = document_upload_rag(uploaded_file, file_description)
+                success = document_upload_rag(
+                    file=uploaded_file,
+                    description=file_description,
+                    tenant_id=st.session_state.get("username", "default"),
+                    session_id=st.session_state.get("jwt_token", "global")
+                )
                 if success:
                     st.success(f"Uploaded: {uploaded_file.name}")
                     st.session_state.uploaded_files[file_key] = True
@@ -94,7 +99,11 @@ user_input = st.chat_input("Ask a question...")
 # Process user input and get response
 if user_input:
     st.session_state.chat_history.append(("user", user_input))
-    response = query_backend(user_input, st.session_state["jwt_token"])
+    response = query_backend(
+        user_input,
+        st.session_state["jwt_token"],
+        tenant_id=st.session_state.get("username", "default")
+    )
     st.session_state.chat_history.append(("assistant", response))
     st.rerun()  # Rerun script to display updated messages
 

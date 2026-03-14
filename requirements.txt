@@ -20,4 +20,5 @@ pymongo
 streamlit
 requests
 langchain-qdrant
+qdrant-client
 python-multipart
