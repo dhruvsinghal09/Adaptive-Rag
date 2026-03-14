@@ -4,6 +4,7 @@ Document upload and processing module.
 
 import os
 import tempfile
+import uuid
 
 from fastapi import UploadFile, File
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
@@ -13,7 +14,12 @@ from src.rag.retriever_setup import retriever_chain
 from src.tools.common_tools import enhance_description_with_llm
 
 
-def documents(description: str, file: UploadFile = File(...)):
+def documents(
+    description: str,
+    file: UploadFile = File(...),
+    tenant_id: str | None = None,
+    session_id: str | None = None
+):
     """
     Process and upload a document for RAG.
 
@@ -23,6 +29,8 @@ def documents(description: str, file: UploadFile = File(...)):
     Args:
         description: User-provided document description.
         file: The uploaded file (PDF or TXT).
+        tenant_id: Logical tenant for document isolation.
+        session_id: Logical session/user scope for document isolation.
 
     Returns:
         Boolean indicating success of the upload process.
@@ -64,16 +72,7 @@ def documents(description: str, file: UploadFile = File(...)):
     finally:
         os.unlink(tmp_path)
 
-    # Enhance description using LLM
     description_llm = enhance_description_with_llm(description)
-
-    # Save enhanced description
-    with open("description.txt", "w", encoding="utf-8") as f:
-        f.write(description_llm)
-
-    with open("description.txt", "r", encoding="utf-8") as f:
-        print("Document description from storage:")
-        print(f.read())
 
     # Split documents into chunks
     splitter = RecursiveCharacterTextSplitter(
@@ -82,7 +81,23 @@ def documents(description: str, file: UploadFile = File(...)):
     )
     chunks = splitter.split_documents(docs)
 
-    return retriever_chain(chunks)
+    doc_id = str(uuid.uuid4())
+    for idx, chunk in enumerate(chunks):
+        chunk.metadata = chunk.metadata or {}
+        chunk.metadata.update({
+            "chunk_id": idx,
+            "document_id": doc_id,
+            "filename": filename,
+            "document_description": description_llm,
+            "tenant_id": tenant_id or "default",
+            "session_id": session_id or "global",
+        })
+
+    return retriever_chain(
+        chunks=chunks,
+        tenant_id=tenant_id,
+        session_id=session_id
+    )
 
 
 

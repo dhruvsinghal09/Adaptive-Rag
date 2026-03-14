@@ -8,13 +8,14 @@ from langchain_core.prompts import PromptTemplate
 from langgraph.constants import START, END
 from langgraph.graph.state import StateGraph
 
-from src.rag.reAct_agent import agent_executor
-from src.rag.retriever_setup import get_retriever
+from src.rag.reAct_agent import build_agent_executor
+from src.rag.retriever_setup import get_retriever, retrieve_documents
 from src.config.settings import Config
 from src.llms.openai import llm
 from src.models.grade import Grade
 from src.models.route_identifier import RouteIdentifier
 from src.models.state import State
+from src.rag.citations import extract_citations, render_citations
 from src.tools.graph_tools import routing_tool, doc_tool
 
 config = Config()
@@ -32,7 +33,9 @@ def query_classifier(state: State):
         dict: Updated state with route and latest_query.
     """
     question = state["messages"][-1].content
-    retriever = get_retriever()
+    tenant_id = state.get("tenant_id")
+    session_id = state.get("session_id")
+    retriever = get_retriever(tenant_id=tenant_id, session_id=session_id)
     context = retriever.invoke(question)
     print("docs received from Qdrant")
     print(context)
@@ -47,7 +50,13 @@ def query_classifier(state: State):
     print("result received is in query classifier")
     print(result.route)
 
-    return {"messages": state["messages"], "route": result.route, "latest_query": question}
+    return {
+        "messages": state["messages"],
+        "route": result.route,
+        "latest_query": question,
+        "tenant_id": tenant_id,
+        "session_id": session_id
+    }
 
 
 def general_llm(state: State):
@@ -76,8 +85,19 @@ def retriever_node(state: State):
     Returns:
         dict: Updated messages with tool calls.
     """
-    messages = state["latest_query"]
-    result = agent_executor.invoke({"input": messages})
+    query = state["latest_query"]
+    tenant_id = state.get("tenant_id")
+    session_id = state.get("session_id")
+    agent_executor = build_agent_executor(tenant_id=tenant_id, session_id=session_id)
+    docs = retrieve_documents(
+        query=query,
+        tenant_id=tenant_id,
+        session_id=session_id,
+        k=4
+    )
+    citations = extract_citations(docs)
+
+    result = agent_executor.invoke({"input": query})
 
     # Extract tool calls
     intermediate_steps = result.get("intermediate_steps", [])
@@ -95,7 +115,8 @@ def retriever_node(state: State):
     )
 
     return {
-        "messages": [new_message]
+        "messages": [new_message],
+        "citations": citations
     }
 
 
@@ -168,8 +189,18 @@ def generate(state: State):
 
     generate_chain = generate_prompt | llm
     result = generate_chain.invoke({"context": context})
+    citations = state.get("citations") or []
 
-    return {"messages": [{"role": "assistant", "content": result.content}]}
+    if citations:
+        final_content = f"{result.content}\n\n{render_citations(citations)}"
+    else:
+        final_content = result.content
+
+    final_message = AIMessage(
+        content=final_content,
+        additional_kwargs={"citations": citations}
+    )
+    return {"messages": [final_message], "citations": citations}
 
 
 def web_search(state: State):
